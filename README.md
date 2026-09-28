@@ -87,7 +87,7 @@ The session is configured for local execution on a laptop:
 | `spark.driver.memory` | 4 g |
 | `spark.executor.memory` | 4 g |
 | `spark.sql.shuffle.partitions` | 8 |
-| `spark.local.dir` | `/Users/akashweb/spark-temp` |
+| `spark.local.dir` | `/tmp/spark-temp` |
 
 `spark.local.dir` is where Spark spills temporary data during shuffles. Change this to a path on your machine before running.
 
@@ -352,7 +352,7 @@ A light/dark theme toggle is in the nav bar. The preference is saved to `localSt
 
 ```bash
 # Clone and enter the project
-git clone https://github.com/akashchauhanweb/nycOpenDataAnalysisOnRodentInfestation.git
+git clone <your-repo-url> nycOpenDataAnalysisOnRodentInfestation
 cd nycOpenDataAnalysisOnRodentInfestation
 
 # Create a virtual environment using Python 3.13
