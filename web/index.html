@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NYC Rodent Inspection Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── STICKY NAV ─────────────────────────────────────── -->
+  <nav>
+    <div class="nav-brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <circle cx="13" cy="13" r="12" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+        <!-- body -->
+        <ellipse cx="13" cy="14.5" rx="6.5" ry="5" fill="rgba(255,255,255,0.88)"/>
+        <!-- eyes -->
+        <circle cx="10.5" cy="13" r="0.9" fill="#1B3A6B"/>
+        <circle cx="15.5" cy="13" r="0.9" fill="#1B3A6B"/>
+        <!-- smile -->
+        <path d="M10.5 16.5 Q13 18 15.5 16.5" stroke="#1B3A6B" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+        <!-- head -->
+        <ellipse cx="13" cy="10.5" rx="3.8" ry="3" fill="rgba(255,255,255,0.88)"/>
+        <!-- ears -->
+        <path d="M10.5 9 Q9.5 6.5 8 5.5" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M15.5 9 Q16.5 6.5 18 5.5" stroke="rgba(255,255,255,0.7)" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <!-- tail -->
+        <path d="M13 14.5 Q17 16.5 20 15 Q22 14 21 17" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span>NYC Rodent Inspection Dashboard</span>
+    </div>
+    <div class="nav-right">
+      <span class="nav-badge">NYC Open Data &middot; 2009&ndash;2025</span>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme"></button>
+    </div>
+  </nav>
+
+  <!-- ── LOADING SCREEN ─────────────────────────────────── -->
+  <div id="loading">
+    <div class="loading-inner">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Loading inspection data&hellip;</p>
+    </div>
+  </div>
+
+  <!-- ── MAIN APP ────────────────────────────────────────── -->
+  <main id="app" class="hidden">
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <div class="filter-cluster">
+        <span class="filter-label">Time Period</span>
+        <button class="btn-all-years" id="btn-all-years">All Years</button>
+        <button class="btn-play" id="btn-play" title="Play year animation (Space)">
+          <svg id="play-icon" width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><polygon points="3,2 12,7 3,12"/></svg>
+          <svg id="pause-icon" width="13" height="13" viewBox="0 0 14 14" fill="currentColor" style="display:none"><rect x="2" y="2" width="4" height="10" rx="1"/><rect x="8" y="2" width="4" height="10" rx="1"/></svg>
+        </button>
+        <input type="range" id="year-slider" min="2009" max="2025" value="2025" step="1" aria-label="Select year" />
+        <span class="year-display" id="year-display">2025</span>
+        <span class="kbd-hint"><kbd>&larr;</kbd><kbd>&rarr;</kbd></span>
+      </div>
+      <div class="filter-cluster">
+        <span class="filter-label">Borough</span>
+        <button class="pill active" data-borough="All">All</button>
+        <button class="pill" data-borough="Manhattan">Manhattan</button>
+        <button class="pill" data-borough="Brooklyn">Brooklyn</button>
+        <button class="pill" data-borough="Bronx">Bronx</button>
+        <button class="pill" data-borough="Queens">Queens</button>
+        <button class="pill" data-borough="Staten Island">S. Island</button>
+      </div>
+    </div>
+
+    <!-- CONTEXT STRIP -->
+    <div class="context-strip" id="context-strip"></div>
+
+    <!-- KPI GRID -->
+    <div class="kpi-grid">
+      <div class="kpi-card" style="animation-delay:0.05s">
+        <div class="kpi-top">
+          <div>
+            <div class="kpi-label">Total Inspections</div>
+            <div class="kpi-value" id="kpi-inspections">—</div>
+          </div>
+          <svg class="kpi-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="9.5" cy="9.5" r="6.5"/><line x1="14.5" y1="14.5" x2="20" y2="20"/>
+          </svg>
+        </div>
+        <div class="kpi-delta" id="kpi-inspections-delta"></div>
+        <canvas class="kpi-spark" id="spark-inspections" width="84" height="28"></canvas>
+      </div>
+
+      <div class="kpi-card danger" style="animation-delay:0.10s">
+        <div class="kpi-top">
+          <div>
+            <div class="kpi-label">Rat Positive Rate</div>
+            <div class="kpi-value" id="kpi-rate">—</div>
+          </div>
+          <svg class="kpi-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 2L2 19h18L11 2z"/><line x1="11" y1="9" x2="11" y2="13"/><circle cx="11" cy="16.5" r="0.7" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="kpi-delta" id="kpi-rate-delta"></div>
+        <canvas class="kpi-spark" id="spark-rate" width="84" height="28"></canvas>
+      </div>
+
+      <div class="kpi-card amber" style="animation-delay:0.15s">
+        <div class="kpi-top">
+          <div>
+            <div class="kpi-label">Active Rat Signs</div>
+            <div class="kpi-value" id="kpi-activity">—</div>
+          </div>
+          <svg class="kpi-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="2,15 6,9 10,13 15,5 20,8"/><circle cx="20" cy="8" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="kpi-delta" id="kpi-activity-delta"></div>
+        <canvas class="kpi-spark" id="spark-activity" width="84" height="28"></canvas>
+      </div>
+
+      <div class="kpi-card success" style="animation-delay:0.20s">
+        <div class="kpi-top">
+          <div>
+            <div class="kpi-label">Bait Applied</div>
+            <div class="kpi-value" id="kpi-bait">—</div>
+          </div>
+          <svg class="kpi-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11,2 14,8.5 21,9.5 16,15 17.5,22 11,18.5 4.5,22 6,15 1,9.5 8,8.5"/>
+          </svg>
+        </div>
+        <div class="kpi-delta" id="kpi-bait-delta"></div>
+        <canvas class="kpi-spark" id="spark-bait" width="84" height="28"></canvas>
+      </div>
+    </div>
+
+    <!-- TREND CHART -->
+    <section class="section">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Historical Trend &amp; Near-Term Projection</h2>
+            <p class="card-sub">Rat positive rate 2009&ndash;2025 &middot; dashed = linear projection</p>
+          </div>
+          <span class="ml-badge">Linear Regression</span>
+        </div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="trend-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP + BOROUGH COMPARISON -->
+    <section class="section grid-3-2">
+      <div class="card map-card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Rat Activity Heatmap</h2>
+            <p class="card-sub" id="map-subtitle">2025 &middot; All Boroughs</p>
+          </div>
+          <span class="map-hint">Click borough marker to filter</span>
+        </div>
+        <div id="map"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Borough Comparison</h2>
+            <p class="card-sub">Rat positive rate % &middot; click bar to filter</p>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:360px">
+          <canvas id="borough-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDAR + SEASONAL -->
+    <section class="section grid-1-1">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Monthly Activity Matrix</h2>
+            <p class="card-sub">Year &times; month rat rate &mdash; click cell to jump to year</p>
+          </div>
+        </div>
+        <div id="calendar-heatmap"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Seasonal Pattern</h2>
+            <p class="card-sub" id="season-subtitle">Monthly rat positive %</p>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="season-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD + INSPECTION TYPE -->
+    <section class="section grid-3-2">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Top Neighborhoods by Rat Activity</h2>
+            <p class="card-sub">Top 15 by cumulative rat-positive count</p>
+          </div>
+        </div>
+        <div id="leaderboard"></div>
+      </div>
+      <div class="card type-chart-card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Inspection Type Breakdown</h2>
+            <p class="card-sub">Rat positive rate per inspection category</p>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="type-chart"></canvas>
+        </div>
+        <ul id="type-legend" class="type-legend-list"></ul>
+      </div>
+    </section>
+
+    <!-- RESULT BREAKDOWN -->
+    <section class="section">
+      <div class="card">
+        <div class="card-hd">
+          <div>
+            <h2 class="card-title">Inspection Result Distribution</h2>
+            <p class="card-sub" id="result-subtitle">Annual count of all inspection outcomes &middot; stacked by result type</p>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="result-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- PREDICTIVE INTELLIGENCE -->
+    <section class="section">
+      <div class="card prediction-card">
+        <div class="card-hd pred-hd">
+          <div>
+            <h2 class="card-title">Predictive Intelligence</h2>
+            <p class="card-sub">Powered by Random Forest &middot; AUC-ROC 0.87 &middot; trained 2009&ndash;2022 &middot; tested 2023&ndash;2025</p>
+          </div>
+          <span class="ml-badge">Random Forest</span>
+        </div>
+        <div class="pred-signals" id="pred-signals"></div>
+        <div id="ml-zip-table"></div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Data: NYC Department of Health &amp; Mental Hygiene &middot; Rodent Inspections via NYC Open Data &middot; 2009&ndash;2025</span>
+    </footer>
+  </main>
+
+  <div id="tooltip" role="tooltip"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

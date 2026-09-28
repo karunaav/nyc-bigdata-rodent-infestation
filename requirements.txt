@@ -1,0 +1,19 @@
+# ── Bootstrap (required before all others on Python 3.12+) ───
+setuptools==70.3.0
+
+# ── Big Data / ETL ────────────────────────────────────────────
+pyspark==4.0.0
+
+# ── Data Processing ───────────────────────────────────────────
+pandas==2.2.3
+numpy==2.2.6
+pyarrow==18.1.0
+dask[dataframe]==2024.12.1
+
+# ── Geospatial ────────────────────────────────────────────────
+geopandas==1.0.1
+folium==0.18.0
+
+# ── Visualization (notebooks) ─────────────────────────────────
+matplotlib==3.9.4
+seaborn==0.13.2
